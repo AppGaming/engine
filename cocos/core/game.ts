@@ -320,6 +320,8 @@ export class Game extends EventTarget {
 
     public _persistRootNodes = {};
 
+    public inputManager = inputManager
+
     // states
     public _paused = true; // whether the game is paused
     public _configLoaded = false; // whether config loaded
