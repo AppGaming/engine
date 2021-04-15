@@ -556,33 +556,36 @@ class EventManager {
      * 分发事件。
      *
      * @param event - 分发事件。
+     * @returns 此事件是否被消费
      */
-    public dispatchEvent (event: Event) {
+    public dispatchEvent (event: Event): boolean {
+        let consumed = false;
         if (!this._isEnabled) {
-            return;
+            return consumed;
         }
 
         this._updateDirtyFlagForSceneGraph();
         this._inDispatch++;
         if (!event || !event.getType) {
             errorID(3511);
-            return;
+            return consumed;
         }
         if (event.getType().startsWith(legacyCC.Event.TOUCH)) {
-            this._dispatchTouchEvent(event as EventTouch);
+            consumed = this._dispatchTouchEvent(event as EventTouch);
             this._inDispatch--;
-            return;
+            return consumed;
         }
 
         const listenerID = __getListenerID(event);
         this._sortEventListeners(listenerID);
         const selListeners = this._listenersMap[listenerID];
         if (selListeners != null) {
-            this._dispatchEventToListeners(selListeners, this._onListenerCallback, event);
+            consumed = this._dispatchEventToListeners(selListeners, this._onListenerCallback, event);
             this._onUpdateListeners(selListeners);
         }
 
         this._inDispatch--;
+        return consumed;
     }
 
     public _onListenerCallback (listener: EventListener, event: Event) {
@@ -604,10 +607,10 @@ class EventManager {
      * @param eventName - 自定义事件名。
      * @param optionalUserData
      */
-    public dispatchCustomEvent (eventName, optionalUserData) {
+    public dispatchCustomEvent (eventName, optionalUserData): boolean {
         const ev = new legacyCC.Event.EventCustom(eventName);
         ev.setUserData(optionalUserData);
-        this.dispatchEvent(ev);
+        return this.dispatchEvent(ev);
     }
 
     private _setDirtyForNode (node: Node) {
@@ -1022,16 +1025,17 @@ class EventManager {
         return false;
     }
 
-    private _dispatchTouchEvent (event: EventTouch) {
+    private _dispatchTouchEvent (event: EventTouch): boolean {
         this._sortEventListeners(ListenerID.TOUCH_ONE_BY_ONE);
         this._sortEventListeners(ListenerID.TOUCH_ALL_AT_ONCE);
 
         const oneByOneListeners = this._getListeners(ListenerID.TOUCH_ONE_BY_ONE);
         const allAtOnceListeners = this._getListeners(ListenerID.TOUCH_ALL_AT_ONCE);
+        let consumed = false;
 
         // If there aren't any touch listeners, return directly.
         if (oneByOneListeners === null && allAtOnceListeners === null) {
-            return;
+            return consumed;
         }
 
         const originalTouches = event.getTouches();
@@ -1046,7 +1050,7 @@ class EventManager {
                 const originalTouch = originalTouches[i];
                 event.touch = originalTouch;
                 event.propagationStopped = event.propagationImmediateStopped = false;
-                this._dispatchEventToListeners(oneByOneListeners, this._onTouchEventCallback, oneByOneArgsObj);
+                consumed ||= this._dispatchEventToListeners(oneByOneListeners, this._onTouchEventCallback, oneByOneArgsObj);
             }
         }
 
@@ -1054,12 +1058,13 @@ class EventManager {
         // process standard handlers 2nd
         //
         if (allAtOnceListeners && mutableTouches.length > 0) {
-            this._dispatchEventToListeners(allAtOnceListeners, this._onTouchesEventCallback, { event, touches: mutableTouches });
+            consumed ||= this._dispatchEventToListeners(allAtOnceListeners, this._onTouchesEventCallback, { event, touches: mutableTouches });
             if (event.isStopped()) {
-                return;
+                return consumed;
             }
         }
         this._updateTouchListeners(event);
+        return consumed;
     }
 
     private _onTouchesEventCallback (listener: any, callbackParams: any) {
@@ -1110,7 +1115,7 @@ class EventManager {
         }
     }
 
-    private _dispatchEventToListeners (listeners: _EventListenerVector, onEvent: (listener:any, eventOrArgs:any)=>boolean, eventOrArgs: any) {
+    private _dispatchEventToListeners (listeners: _EventListenerVector, onEvent: (listener:any, eventOrArgs:any)=>boolean, eventOrArgs: any): boolean {
         let shouldStopPropagation = false;
         const fixedPriorityListeners = listeners.getFixedPriorityListeners();
         const sceneGraphPriorityListeners = listeners.getSceneGraphPriorityListeners();
@@ -1147,6 +1152,7 @@ class EventManager {
                 }
             }
         }
+        return shouldStopPropagation;
     }
 
     private _setDirty (listenerID: string, flag) {

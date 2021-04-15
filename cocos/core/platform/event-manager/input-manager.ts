@@ -117,7 +117,10 @@ class InputManager {
 
     private _pointLocked = false;
 
-    public handleTouchesBegin (touches: Touch[]) {
+    private _consumeCallback?: (event: Event, consumed: boolean) => void;
+
+    public handleTouchesBegin (touches: Touch[]): boolean {
+        let consumed = false;
         const handleTouches: Touch[] = [];
         const locTouchIntDict = this._touchesIntegerDict;
         for (let i = 0; i < touches.length; ++i) {
@@ -146,11 +149,13 @@ class InputManager {
         if (handleTouches.length > 0) {
             // this._glView!._convertTouchesWithScale(handleTouches);
             const touchEvent = new EventTouch(handleTouches, false, EventTouch.BEGAN, macro.ENABLE_MULTI_TOUCH ? this._getUsefulTouches() : handleTouches);
-            eventManager.dispatchEvent(touchEvent);
+            consumed = eventManager.dispatchEvent(touchEvent);
         }
+        return consumed;
     }
 
-    public handleTouchesMove (touches: Touch[]) {
+    public handleTouchesMove (touches: Touch[]): boolean {
+        let consumed = false;
         const handleTouches: Touch[] = [];
         const locTouches = this._touches;
         for (let i = 0; i < touches.length; ++i) {
@@ -175,31 +180,35 @@ class InputManager {
         if (handleTouches.length > 0) {
             // this._glView!._convertTouchesWithScale(handleTouches);
             const touchEvent = new EventTouch(handleTouches, false, EventTouch.MOVED, macro.ENABLE_MULTI_TOUCH ? this._getUsefulTouches() : handleTouches);
-            eventManager.dispatchEvent(touchEvent);
+            consumed = eventManager.dispatchEvent(touchEvent);
         }
+        return consumed;
     }
 
-    public handleTouchesEnd (touches: Touch[]) {
+    public handleTouchesEnd (touches: Touch[]): boolean {
         const handleTouches = this.getSetOfTouchesEndOrCancel(touches);
         if (handleTouches.length > 0) {
             // this._glView!._convertTouchesWithScale(handleTouches);
             const touchEvent = new EventTouch(handleTouches, false, EventTouch.ENDED, macro.ENABLE_MULTI_TOUCH ? this._getUsefulTouches() : handleTouches);
-            eventManager.dispatchEvent(touchEvent);
+            return eventManager.dispatchEvent(touchEvent);
         }
         this._preTouchPool.length = 0;
+        return false;
     }
 
-    public handleTouchesCancel (touches: Touch[]) {
+    public handleTouchesCancel (touches: Touch[]): boolean {
+        let consumed = false;
         const handleTouches = this.getSetOfTouchesEndOrCancel(touches);
         if (handleTouches.length > 0) {
             // this._glView!._convertTouchesWithScale(handleTouches);
             const touchEvent = new EventTouch(handleTouches, false, EventTouch.CANCELLED, macro.ENABLE_MULTI_TOUCH ? this._getUsefulTouches() : handleTouches);
-            eventManager.dispatchEvent(touchEvent);
+            consumed = eventManager.dispatchEvent(touchEvent);
         }
         this._preTouchPool.length = 0;
+        return consumed;
     }
 
-    public getSetOfTouchesEndOrCancel (touches: Touch[]) {
+    public getSetOfTouchesEndOrCancel (touches: Touch[]): Touch[] {
         const handleTouches: Touch[] = [];
         const locTouches = this._touches;
         const locTouchesIntDict = this._touchesIntegerDict;
@@ -406,6 +415,10 @@ class InputManager {
         this._isRegisterEvent = true;
     }
 
+    public registerSystemEventConsumeCallback (callback: (event: Event, consumed: boolean) => void) {
+        this._consumeCallback = callback;
+    }
+
     /**
      * Whether enable accelerometer event.
      */
@@ -515,6 +528,13 @@ class InputManager {
                 }
             }
         }
+    }
+
+    private _dispatchTouchEventConsumed(event: Event, consumed: boolean) {
+        if (!this._consumeCallback) {
+            return;
+        }
+        this._consumeCallback(event, consumed);
     }
 
     private _getUnUsedIndex () {
@@ -691,7 +711,7 @@ class InputManager {
     }
 
     private _registerTouchEvents (element: HTMLElement) {
-        const makeTouchListener = (touchesHandler: (touchesToHandle: any) => void) => (event: TouchEvent) => {
+        const makeTouchListener = (touchesHandler: (touchesToHandle: any) => boolean) => (event: TouchEvent) => {
             if (!event.changedTouches) {
                 return;
             }
@@ -699,26 +719,35 @@ class InputManager {
             const body = document.body;
             pos.left -= body.scrollLeft || 0;
             pos.top -= body.scrollTop || 0;
-            touchesHandler(this.getTouchesByEvent(event, pos));
+            let consumed = touchesHandler(this.getTouchesByEvent(event, pos)) || false;
             event.stopPropagation();
             event.preventDefault();
+            this._dispatchTouchEventConsumed(event, consumed);
         };
 
         element.addEventListener('touchstart', makeTouchListener((touchesToHandle) => {
-            this.handleTouchesBegin(touchesToHandle);
+            let consumed = this.handleTouchesBegin(touchesToHandle);
             element.focus();
+            console.log('onTouchStart consumed: ', consumed);
+            return consumed;
         }), false);
 
         element.addEventListener('touchmove', makeTouchListener((touchesToHandle) => {
-            this.handleTouchesMove(touchesToHandle);
+            let consumed = this.handleTouchesMove(touchesToHandle);
+            console.log('onTouchMove consumed: ', consumed);
+            return consumed;
         }), false);
 
         element.addEventListener('touchend', makeTouchListener((touchesToHandle) => {
-            this.handleTouchesEnd(touchesToHandle);
+            let consumed = this.handleTouchesEnd(touchesToHandle);
+            console.log('onTouchEnd consumed: ', consumed);
+            return consumed;
         }), false);
 
         element.addEventListener('touchcancel', makeTouchListener((touchesToHandle) => {
-            this.handleTouchesCancel(touchesToHandle);
+            let consumed = this.handleTouchesCancel(touchesToHandle);
+            console.log('onTouchCancel consumed: ', consumed);
+            return consumed;
         }), false);
     }
 
