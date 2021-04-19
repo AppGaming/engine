@@ -32,7 +32,7 @@ import { ALIPAY, EDITOR, JSB, PREVIEW, RUNTIME_BASED } from 'internal:constants'
 import { IAssetManagerOptions } from './asset-manager/asset-manager';
 import { EventTarget } from './event/event-target';
 import * as debug from './platform/debug';
-import inputManager from './platform/event-manager/input-manager';
+import { inputManager } from './platform/event-manager/input-manager';
 import { Device, DeviceInfo } from './gfx';
 import { sys } from './platform/sys';
 import { macro } from './platform/macro';

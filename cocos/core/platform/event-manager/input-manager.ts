@@ -814,8 +814,6 @@ export class InputManager {
     }
 }
 
-const inputManager = new InputManager();
-
-export default inputManager;
+export const inputManager = new InputManager();
 
 legacyCC.internal.inputManager = inputManager;
