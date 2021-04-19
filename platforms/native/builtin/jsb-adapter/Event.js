@@ -11,6 +11,7 @@
 class Event {
 
     constructor(type, eventInit) {
+        this._eventId = 0;
         this._type = type
         this._target = null
         this._eventPhase = 2
@@ -19,6 +20,10 @@ class Event {
         this._stopped = false  // The flag to stop propagation immediately.
         this._passiveListener = null
         this._timeStamp = Date.now()
+    }
+
+    get eventId() {
+        return this._eventId;
     }
 
     /**

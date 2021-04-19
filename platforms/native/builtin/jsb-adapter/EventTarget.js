@@ -223,10 +223,11 @@ class EventTarget {
         }
 
         const eventName = event.type
+        var consumed = false;
         var onFunc = this['on' + eventName];
         if (onFunc && typeof onFunc === 'function') {
             event._target = event._currentTarget = this;
-            onFunc.call(this, event);
+            consumed = conseumd || onFunc.call(this, event);
             event._target = event._currentTarget = null
             event._eventPhase = 0
             event._passiveListener = null
@@ -268,7 +269,7 @@ class EventTarget {
             // Call this listener
             event._passiveListener = node.passive ? node.listener : null
             if (typeof node.listener === "function") {
-                node.listener.call(this, event)
+                consumed = consumed | node.listener.call(this, event)
             }
 
             // Break if `event.stopImmediatePropagation` was called.
@@ -287,12 +288,13 @@ class EventTarget {
 }
 
 function touchEventHandlerFactory(type) {
-    return (touches) => {
+    return (touches, id) => {
         const touchEvent = new TouchEvent(type)
 
         touchEvent.touches = touches;
         touchEvent.targetTouches = Array.prototype.slice.call(touchEvent.touches)
         touchEvent.changedTouches = touches;//event.changedTouches
+        touchEvent._eventId = id
         // touchEvent.timeStamp = event.timeStamp
 
         var i = 0, touchCount = touches.length;
