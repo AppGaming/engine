@@ -89,7 +89,7 @@ legacyCC.internal.Acceleration = Acceleration;
 /**
  *  This class manages all events of input. include: touch, mouse, accelerometer, keyboard
  */
-class InputManager {
+export class InputManager {
     private _mousePressed = false;
 
     private _isRegisterEvent = false;
