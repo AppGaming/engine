@@ -199,6 +199,9 @@ if (window.SocketIO) {
 }
 
 window.gameTick = tick;
+window.close = function () {
+    
+}
 
 // generate get set function
 jsb.generateGetSet = function (moduleObj) {
