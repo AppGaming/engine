@@ -438,7 +438,9 @@ export class Game extends EventTarget {
      * @zh 退出游戏
      */
     public end () {
+        console.log("game ending..");
         if (this._gfxDevice) {
+            console.log("destroy gfxDevice.");
             this._gfxDevice.destroy();
             this._gfxDevice = null;
         }

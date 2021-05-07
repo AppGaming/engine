@@ -17,7 +17,7 @@ class HTMLImageElement extends HTMLElement {
 
     destroy() {
         if (this._data) {
-            jsb.destroyImage(this._data);
+            jsb.destroyImage(this._data, this.width * this.height * 4);
             this._data = null;
         }
         this._src = null;
