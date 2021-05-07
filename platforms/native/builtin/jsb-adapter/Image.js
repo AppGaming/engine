@@ -9,9 +9,9 @@ class Image extends HTMLImageElement {
         }
         super(width, height, true)
         
-        this._data = data;
-        this.complete = true;
         if (data) {
+            this._data = data;
+            this.complete = true;
             var event = new Event('load');
             this.dispatchEvent(event);
         }
