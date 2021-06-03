@@ -227,7 +227,7 @@ class EventTarget {
         var onFunc = this['on' + eventName];
         if (onFunc && typeof onFunc === 'function') {
             event._target = event._currentTarget = this;
-            consumed = conseumd || onFunc.call(this, event);
+            consumed = consumed || onFunc.call(this, event);
             event._target = event._currentTarget = null
             event._eventPhase = 0
             event._passiveListener = null
